@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\" -Force -Recurse)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "PowerShell(\\(Get-ChildItem -Path \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\" -Recurse -Force | Measure-Object\\).Count)",
+      "PowerShell(\\(Get-ChildItem -Path \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\" -Directory -Hidden -Force\\).Name)",
+      "PowerShell($basePath = \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\"; if \\(Test-Path $basePath\\) { Get-ChildItem -Path $basePath -Force -Recurse -File | Select-Object -Property @{Name=\"Path\";Expression={$_.FullName -replace [regex]::Escape\\($basePath\\)}}, Length, LastWriteTime | Format-Table -AutoSize } else { \"Directory does not exist\" })",
+      "PowerShell($basePath = \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\"; Get-ChildItem -Path $basePath -Force -Recurse -Directory | Select-Object -Property @{Name=\"Path\";Expression={$_.FullName -replace [regex]::Escape\\($basePath\\)}} | Format-Table -AutoSize)",
+      "PowerShell($basePath = \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\"; Get-ChildItem -Path $basePath -Force | ForEach-Object { [PSCustomObject]@{ Name = $_.Name; Type = if \\($_.PSIsContainer\\) { \"Folder\" } else { \"File\" }; Size = if \\($_.PSIsContainer\\) { \"-\" } else { $_.Length }; Created = $_.CreationTime } } | Format-Table -AutoSize)",
+      "PowerShell(Write-Host \"=== DIRECTORY STRUCTURE ===\" ; $basePath = \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\" ; Write-Host \"Root directory: $basePath\" ; Write-Host \"`nTotal items: $\\(\\(Get-ChildItem -Path $basePath -Force -Recurse\\).Count\\)\" ; Write-Host \"`n=== TOP-LEVEL CONTENTS ===\" ; Get-ChildItem -Path $basePath -Force | ForEach-Object { if \\($_.PSIsContainer\\) { Write-Host \"📁 $\\($_.Name\\)/\" } else { Write-Host \"📄 $\\($_.Name\\) \\($\\($_.Length\\) bytes\\)\" } })",
+      "PowerShell(Write-Host \"=== FILES IN .claude SUBDIRECTORY ===\" ; Get-ChildItem -Path \"C:\\\\Users\\\\papao\\\\Downloads\\\\Servicios Profesionales\\\\.claude\" -Force | ForEach-Object { if \\($_.PSIsContainer\\) { Write-Host \"📁 $\\($_.Name\\)/\" } else { Write-Host \"📄 $\\($_.Name\\) \\($\\($_.Length\\) bytes\\)\" } })",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ls \"C:\\\\Users\\\\papao\\\\.claude\\\\\" 2>&1)",
+      "PowerShell(head -20)",
+      "Bash(pnpm install *)",
+      "Bash(timeout 10 pnpm dev)",
+      "Bash(start http://localhost:3000)",
+      "Bash(nohup pnpm dev)",
+      "Bash(curl -s http://localhost:3000)",
+      "Read(//c/Users/papao/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python scripts/search.py \"premium cleaning service home boutique editorial minimal\" --design-system -p \"ServiYa\")",
+      "Bash(npx tsc *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(start \"\" \"http://localhost:3000\")",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(Stop-Process -Id 23752 -Confirm:$false)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh --version 2>&1)"
+    ]
+  }
+}

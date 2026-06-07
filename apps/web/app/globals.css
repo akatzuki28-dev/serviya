@@ -1,0 +1,157 @@
+@import "tailwindcss";
+
+/* ── Design tokens — Premium Boutique ──────────────────────────────────────── */
+@theme inline {
+  /* Base — Cream + Deep Forest */
+  --color-background: #faf8f4;
+  --color-surface: #f3efe6;
+  --color-foreground: #1a1f1b;
+  --color-muted: #6b7468;
+  --color-subtle: #9ca29a;
+  --color-border: #e5e0d5;
+  --color-border-strong: #d4cdb8;
+
+  /* Brand — Deep Forest Green + Champagne Gold */
+  --color-brand: #1f3d2e;
+  --color-brand-soft: #2d5240;
+  --color-brand-light: #e8efe9;
+  --color-gold: #b89968;
+  --color-gold-soft: #cdb38a;
+  --color-gold-light: #f4ecdc;
+
+  /* Status */
+  --color-success: #1f7a4d;
+  --color-warning: #b58a2a;
+  --color-danger: #a4322a;
+
+  /* Typography */
+  --font-serif: var(--font-playfair), "Playfair Display", Georgia, serif;
+  --font-sans: var(--font-inter), Inter, system-ui, -apple-system, sans-serif;
+
+  /* Shadows — soft layered */
+  --shadow-soft: 0 1px 2px rgba(26, 31, 27, 0.04), 0 4px 12px rgba(26, 31, 27, 0.04);
+  --shadow-card: 0 1px 3px rgba(26, 31, 27, 0.06), 0 8px 24px -8px rgba(26, 31, 27, 0.08);
+  --shadow-lift: 0 4px 12px rgba(26, 31, 27, 0.06), 0 20px 40px -16px rgba(26, 31, 27, 0.14);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-background);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+  font-feature-settings: "ss01", "dlig";
+}
+
+/* ── Reveal animation (Intersection Observer) ─────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal[data-visible="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal[data-delay="100"] { transition-delay: 100ms; }
+.reveal[data-delay="200"] { transition-delay: 200ms; }
+.reveal[data-delay="300"] { transition-delay: 300ms; }
+.reveal[data-delay="400"] { transition-delay: 400ms; }
+.reveal[data-delay="500"] { transition-delay: 500ms; }
+.reveal[data-delay="600"] { transition-delay: 600ms; }
+
+/* ── Subtle marquee for "trusted by" ─────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 40s linear infinite;
+}
+
+/* ── Underline link ───────────────────────────────────────────────────────── */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.skeleton {
+  background-color: var(--color-border);
+  border-radius: 0.5rem;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+/* ── Gold accent divider ──────────────────────────────────────────────────── */
+.gold-divider {
+  display: inline-block;
+  width: 32px;
+  height: 1px;
+  background: var(--color-gold);
+  vertical-align: middle;
+}
+
+/* ── Respect reduced motion ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Focus visible ────────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
