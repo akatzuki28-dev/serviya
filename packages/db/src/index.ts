@@ -1,23 +1,22 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+﻿import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 
+export { schema };
 export * from "./schema";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+export type Order = typeof schema.orders.$inferSelect;
+export type User = typeof schema.users.$inferSelect;
+export type Provider = typeof schema.providers.$inferSelect;
+
+let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 export function getDb() {
-  if (!_db) {
+  if (!db) {
     const pool = new Pool({
       connectionString: process.env["DATABASE_URL"],
-      ssl:
-        process.env["NODE_ENV"] === "production"
-          ? { rejectUnauthorized: false }
-          : false,
     });
-    _db = drizzle(pool, { schema });
+    db = drizzle(pool, { schema });
   }
-  return _db;
+  return db;
 }
-
-export { schema };

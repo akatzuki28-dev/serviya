@@ -131,7 +131,7 @@ ordersRouter.post("/", bookingRateLimiter, async (req: AuthRequest, res) => {
 ordersRouter.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   const db = getDb();
   const order = await db.query.orders.findFirst({
-    where: eq(schema.orders.id, req.params["id"]!),
+    where: eq(schema.orders.id, req.params["id"] as string),
     with: { provider: true },
   });
 
@@ -174,7 +174,7 @@ ordersRouter.patch(
     const [updated] = await db
       .update(schema.orders)
       .set({ status, updatedAt: new Date() })
-      .where(eq(schema.orders.id, req.params["id"]!))
+      .where(eq(schema.orders.id, req.params["id"] as string))
       .returning();
 
     if (!updated) {

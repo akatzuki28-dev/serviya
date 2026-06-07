@@ -15,7 +15,7 @@ usersRouter.get("/:id/orders", requireAuth, async (req: AuthRequest, res) => {
 
   const db = getDb();
   const orders = await db.query.orders.findMany({
-    where: eq(schema.orders.userId, req.params["id"]!),
+    where: eq(schema.orders.userId, req.params["id"] as string),
     orderBy: [desc(schema.orders.createdAt)],
     with: { provider: true },
   });
@@ -32,7 +32,7 @@ usersRouter.get("/:id/addresses", requireAuth, async (req: AuthRequest, res) => 
 
   const db = getDb();
   const addresses = await db.query.userAddresses.findMany({
-    where: eq(schema.userAddresses.userId, req.params["id"]!),
+    where: eq(schema.userAddresses.userId, req.params["id"] as string),
   });
 
   res.json(addresses);
@@ -64,12 +64,12 @@ usersRouter.post("/:id/addresses", requireAuth, async (req: AuthRequest, res) =>
     await db
       .update(schema.userAddresses)
       .set({ isDefault: false })
-      .where(eq(schema.userAddresses.userId, req.params["id"]!));
+      .where(eq(schema.userAddresses.userId, req.params["id"] as string));
   }
 
   const [address] = await db
     .insert(schema.userAddresses)
-    .values({ ...parsed.data, userId: req.params["id"] })
+    .values({ ...parsed.data, userId: req.params["id"] as string })
     .returning();
 
   res.status(201).json(address);
@@ -92,7 +92,7 @@ usersRouter.put("/:id/addresses/:addressId", requireAuth, async (req: AuthReques
   const [updated] = await db
     .update(schema.userAddresses)
     .set(parsed.data)
-    .where(eq(schema.userAddresses.id, req.params["addressId"]!))
+    .where(eq(schema.userAddresses.id, req.params["addressId"] as string))
     .returning();
 
   res.json(updated);
@@ -108,7 +108,7 @@ usersRouter.delete("/:id/addresses/:addressId", requireAuth, async (req: AuthReq
   const db = getDb();
   await db
     .delete(schema.userAddresses)
-    .where(eq(schema.userAddresses.id, req.params["addressId"]!));
+    .where(eq(schema.userAddresses.id, req.params["addressId"] as string));
 
   res.status(204).send();
 });

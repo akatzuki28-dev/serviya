@@ -17,7 +17,7 @@ export const apiRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedis().call(...args) as any,
+    sendCommand: (...args: string[]) => getRedis().call(...(args as [string, ...string[]])) as any,
     prefix: "rl:api:",
   }),
 });
@@ -27,7 +27,7 @@ export const bookingRateLimiter = rateLimit({
   max: 5,
   message: { error: "Demasiados intentos. Intenta en 1 minuto." },
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedis().call(...args) as any,
+    sendCommand: (...args: string[]) => getRedis().call(...(args as [string, ...string[]])) as any,
     prefix: "rl:booking:",
   }),
 });
@@ -36,7 +36,7 @@ export const webhookRateLimiter = rateLimit({
   windowMs: 60_000,
   max: 100,
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedis().call(...args) as any,
+    sendCommand: (...args: string[]) => getRedis().call(...(args as [string, ...string[]])) as any,
     prefix: "rl:webhook:",
   }),
 });

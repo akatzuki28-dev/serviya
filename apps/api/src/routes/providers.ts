@@ -62,7 +62,7 @@ providersRouter.patch(
     const [updated] = await db
       .update(schema.providers)
       .set(parsed.data)
-      .where(eq(schema.providers.id, req.params["id"]!))
+      .where(eq(schema.providers.id, req.params["id"] as string))
       .returning();
 
     if (!updated) {
@@ -78,7 +78,7 @@ providersRouter.patch(
 providersRouter.get("/:id/orders", requireAuth, requireRole("ADMIN", "PROVIDER"), async (req, res) => {
   const db = getDb();
   const orders = await db.query.orders.findMany({
-    where: eq(schema.orders.providerId, req.params["id"]!),
+    where: eq(schema.orders.providerId, req.params["id"] as string),
     with: { provider: true },
   });
   res.json(orders);
