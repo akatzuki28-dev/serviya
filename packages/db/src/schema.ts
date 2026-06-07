@@ -1,4 +1,4 @@
-﻿import {
+import {
   pgTable,
   uuid,
   varchar,
@@ -88,7 +88,6 @@ export const providerPayouts = pgTable("provider_payouts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Relations for drizzle query API
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   addresses: many(userAddresses),
