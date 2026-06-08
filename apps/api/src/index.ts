@@ -13,6 +13,7 @@ import { adminServicesRouter } from "./routes/admin/services";
 import { mpWebhookRouter } from "./routes/webhooks/mp";
 import { whatsappWebhookRouter } from "./routes/webhooks/whatsapp";
 import { apiRateLimiter, webhookRateLimiter } from "./middlewares/rateLimiter";
+import { seedServicesIfEmpty } from "./seed";
 
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
@@ -70,6 +71,10 @@ app.use(
 
 app.listen(PORT, () => {
   console.log(`API listening on http://localhost:${PORT}`);
+  // Seed inicial idempotente — solo inserta si la tabla está vacía.
+  seedServicesIfEmpty().catch((err) => {
+    console.error("[seed] failed:", err);
+  });
 });
 
 export default app;
