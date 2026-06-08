@@ -18,6 +18,10 @@ import { seedServicesIfEmpty } from "./seed";
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
 
+// Railway (y la mayoría de PaaS) pone la app detrás de un proxy que setea
+// X-Forwarded-For. Sin esto, express-rate-limit no puede identificar IPs.
+app.set("trust proxy", 1);
+
 // ── Seguridad ─────────────────────────────────────────────────────────────────
 app.use(helmet());
 app.use(
