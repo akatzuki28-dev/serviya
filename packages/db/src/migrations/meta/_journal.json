@@ -8,6 +8,13 @@
       "when": 1780883896410,
       "tag": "0000_purple_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780885928129,
+      "tag": "0001_sharp_darkstar",
+      "breakpoints": true
     }
   ]
 }

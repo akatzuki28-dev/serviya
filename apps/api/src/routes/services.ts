@@ -16,6 +16,7 @@ servicesRouter.get("/", async (_req, res) => {
     name: formatServiceName(p.serviceType),
     basePrice: Number(p.basePrice),
     extras: p.extras,
+    comingSoon: p.comingSoon,
   }));
 
   res.json(services);

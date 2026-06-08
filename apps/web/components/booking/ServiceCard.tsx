@@ -18,6 +18,7 @@ export interface ServiceCardData {
   basePrice: number;
   description?: string;
   category: string;
+  comingSoon?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<string, React.ElementType> = {
@@ -38,20 +39,30 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, selected, onClick }: ServiceCardProps) {
   const Icon = CATEGORY_CONFIG[service.category] ?? MoreHorizontal;
+  const comingSoon = service.comingSoon;
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={comingSoon ? undefined : onClick}
+      disabled={comingSoon}
+      aria-disabled={comingSoon}
       className={cn(
-        "group relative w-full text-left rounded-2xl border p-6 transition-all duration-300 cursor-pointer",
+        "group relative w-full text-left rounded-2xl border p-6 transition-all duration-300",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-        selected
-          ? "border-brand bg-brand-light shadow-[var(--shadow-card)]"
-          : "border-border bg-background hover:border-brand/40 hover:shadow-[var(--shadow-soft)]"
+        comingSoon
+          ? "cursor-not-allowed border-border bg-surface/40 opacity-70"
+          : selected
+            ? "cursor-pointer border-brand bg-brand-light shadow-[var(--shadow-card)]"
+            : "cursor-pointer border-border bg-background hover:border-brand/40 hover:shadow-[var(--shadow-soft)]"
       )}
       aria-pressed={selected}
     >
+      {comingSoon && (
+        <span className="absolute right-4 top-4 rounded-full bg-foreground/90 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-background">
+          Próximamente
+        </span>
+      )}
       <div
         className={cn(
           "mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors",
@@ -76,7 +87,7 @@ export function ServiceCard({ service, selected, onClick }: ServiceCardProps) {
         </span>
       </div>
 
-      {selected && (
+      {selected && !comingSoon && (
         <span
           className="absolute right-5 top-5 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-background"
           aria-hidden="true"

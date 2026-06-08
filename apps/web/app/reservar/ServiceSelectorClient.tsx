@@ -13,6 +13,7 @@ interface Service {
   basePrice: number;
   description?: string;
   category: string;
+  comingSoon?: boolean;
 }
 
 interface ServiceSelectorClientProps {
@@ -22,11 +23,11 @@ interface ServiceSelectorClientProps {
 // Fallback data para cuando el API no está disponible
 const FALLBACK_SERVICES: Service[] = [
   { slug: "limpieza-de-hogar", name: "Limpieza de hogar", basePrice: 8500, category: "limpieza", description: "Limpieza integral de ambientes" },
-  { slug: "plomeria", name: "Plomería", basePrice: 6000, category: "plomeria", description: "Reparaciones y destapaciones" },
-  { slug: "electricidad", name: "Electricidad", basePrice: 5500, category: "electricidad", description: "Instalaciones y reparaciones eléctricas" },
-  { slug: "gasista", name: "Gasista", basePrice: 7000, category: "gasista", description: "Instalaciones y habilitaciones de gas" },
-  { slug: "jardineria", name: "Jardinería", basePrice: 5000, category: "jardineria", description: "Mantenimiento y diseño de jardines" },
-  { slug: "pintura", name: "Pintura", basePrice: 9000, category: "pintura", description: "Pintura de interiores y exteriores" },
+  { slug: "plomeria", name: "Plomería", basePrice: 6000, category: "plomeria", description: "Reparaciones y destapaciones", comingSoon: true },
+  { slug: "electricidad", name: "Electricidad", basePrice: 5500, category: "electricidad", description: "Instalaciones y reparaciones eléctricas", comingSoon: true },
+  { slug: "gasista", name: "Gasista", basePrice: 7000, category: "gasista", description: "Instalaciones y habilitaciones de gas", comingSoon: true },
+  { slug: "jardineria", name: "Jardinería", basePrice: 5000, category: "jardineria", description: "Mantenimiento y diseño de jardines", comingSoon: true },
+  { slug: "pintura", name: "Pintura", basePrice: 9000, category: "pintura", description: "Pintura de interiores y exteriores", comingSoon: true },
 ];
 
 export function ServiceSelectorClient({ services }: ServiceSelectorClientProps) {
@@ -37,6 +38,7 @@ export function ServiceSelectorClient({ services }: ServiceSelectorClientProps) 
   const displayServices = services.length > 0 ? services : FALLBACK_SERVICES;
 
   function handleSelect(svc: Service) {
+    if (svc.comingSoon) return;
     setSelected(svc);
   }
 
