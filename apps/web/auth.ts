@@ -44,7 +44,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role ?? "CLIENT";
+        const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+          .split(",")
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
+        const email = (user.email ?? "").toLowerCase();
+        if (email && adminEmails.includes(email)) {
+          token.role = "ADMIN";
+        } else {
+          token.role = (user as any).role ?? "CLIENT";
+        }
       }
       return token;
     },
