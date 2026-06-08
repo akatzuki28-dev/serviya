@@ -66,6 +66,7 @@ export const servicePricing = pgTable("service_pricing", {
   basePrice: numeric("base_price", { precision: 10, scale: 2 }).notNull(),
   extras: jsonb("extras").$type<{ id: string; label: string; price: number }[]>().default([]),
   comingSoon: boolean("coming_soon").notNull().default(false),
+  description: text("description"),
 });
 
 export const userAddresses = pgTable("user_addresses", {

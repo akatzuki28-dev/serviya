@@ -17,6 +17,7 @@ servicesRouter.get("/", async (_req, res) => {
     basePrice: Number(p.basePrice),
     extras: p.extras,
     comingSoon: p.comingSoon,
+    description: p.description ?? undefined,
   }));
 
   res.json(services);

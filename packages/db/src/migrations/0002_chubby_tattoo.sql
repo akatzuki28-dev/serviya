@@ -1,0 +1,1 @@
+ALTER TABLE "service_pricing" ADD COLUMN "description" text;
