@@ -51,17 +51,21 @@ ordersRouter.post("/", bookingRateLimiter, async (req: AuthRequest, res) => {
     let userId: string | null = req.user?.id ?? null;
 
     if (!userId && data.guestEmail) {
-      // Crear usuario guest
+      // Crear/recuperar usuario guest. Siempre tocamos updatedAt para que el
+      // SET nunca quede vacío (Drizzle tira "No values to set" si lo es).
       const [guestUser] = await db
         .insert(schema.users)
         .values({
           email: data.guestEmail,
-          phone: data.guestPhone,
+          phone: data.guestPhone ?? null,
           authProvider: "guest",
         })
         .onConflictDoUpdate({
           target: schema.users.email,
-          set: { phone: data.guestPhone },
+          set: {
+            updatedAt: new Date(),
+            ...(data.guestPhone ? { phone: data.guestPhone } : {}),
+          },
         })
         .returning({ id: schema.users.id });
       userId = guestUser?.id ?? null;
