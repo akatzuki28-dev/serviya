@@ -136,6 +136,7 @@ adminUsersRouter.get("/:id/orders", async (req, res) => {
   const orders = await db.query.orders.findMany({
     where: eq(schema.orders.userId, id),
     orderBy: [desc(schema.orders.createdAt)],
+    with: { provider: true },
     limit: 100,
   });
   res.json(orders);

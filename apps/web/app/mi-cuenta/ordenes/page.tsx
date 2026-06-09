@@ -10,9 +10,14 @@ export const metadata: Metadata = { title: "Mis órdenes" };
 
 async function getUserOrders(userId: string) {
   try {
+    // El server component ya autenticó la sesión y el userId es el del
+    // usuario logueado, así que confiamos vía admin-secret (server-to-server).
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}/orders`,
-      { cache: "no-store" }
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${userId}/orders`,
+      {
+        cache: "no-store",
+        headers: { "x-admin-secret": process.env.ADMIN_SECRET ?? "" },
+      }
     );
     if (!res.ok) return [];
     return res.json();
