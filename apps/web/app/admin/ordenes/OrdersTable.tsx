@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { OrderStatusBadge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Package, Trash2, Ban } from "lucide-react";
-import { deleteOrder, cancelOrder } from "./actions";
+import { Package, Trash2, Loader2, Check } from "lucide-react";
+import {
+  deleteOrder,
+  setOrderStatus,
+  ORDER_STATUSES,
+  type OrderStatus,
+} from "./actions";
 
 export interface AdminOrder {
   id: string;
@@ -16,27 +20,73 @@ export interface AdminOrder {
   provider?: { name: string } | null;
 }
 
-type PendingAction = { id: string; kind: "delete" | "cancel" };
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDIENTE_PAGO: "Pendiente de pago",
+  PAGADA: "Pagada",
+  CONFIRMADA: "Confirmada",
+  EN_CAMINO: "En camino",
+  EN_PROGRESO: "En progreso",
+  COMPLETADA: "Completada",
+  CANCELADA: "Cancelada",
+  PAGO_FALLIDO: "Pago fallido",
+};
+
+// Color del punto según estado, para mantener la pista visual del badge.
+const STATUS_DOT: Record<OrderStatus, string> = {
+  PENDIENTE_PAGO: "bg-amber-500",
+  PAGADA: "bg-blue-500",
+  CONFIRMADA: "bg-violet-500",
+  EN_CAMINO: "bg-cyan-500",
+  EN_PROGRESO: "bg-cyan-500",
+  COMPLETADA: "bg-green-600",
+  CANCELADA: "bg-red-500",
+  PAGO_FALLIDO: "bg-red-500",
+};
 
 export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
-  const [confirm, setConfirm] = useState<PendingAction | null>(null);
-  const [pending, setPending] = useState<PendingAction | null>(null);
+  // Estado local por fila para reflejar el cambio de status sin recargar.
+  const [statuses, setStatuses] = useState<Record<string, string>>(() =>
+    Object.fromEntries(orders.map((o) => [o.id, o.status]))
+  );
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  function runAction(action: PendingAction) {
+  function handleStatusChange(id: string, next: OrderStatus) {
+    const prev = statuses[id];
     setError(null);
-    setPending(action);
+    setSavedId(null);
+    setStatuses((s) => ({ ...s, [id]: next })); // optimista
+    setSavingId(id);
     startTransition(async () => {
-      const result =
-        action.kind === "delete"
-          ? await deleteOrder(action.id)
-          : await cancelOrder(action.id);
-      setPending(null);
-      setConfirm(null);
+      const result = await setOrderStatus(id, next);
+      setSavingId(null);
+      if (result.ok) {
+        setSavedId(id);
+        setTimeout(() => setSavedId((cur) => (cur === id ? null : cur)), 2000);
+      } else {
+        setStatuses((s) => ({ ...s, [id]: prev! })); // revertir
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleDelete(id: string) {
+    setError(null);
+    setDeletingId(id);
+    startTransition(async () => {
+      const result = await deleteOrder(id);
+      setDeletingId(null);
+      setConfirmDeleteId(null);
       if (!result.ok) setError(result.error);
     });
   }
+
+  const dotFor = (status: string) =>
+    STATUS_DOT[status as OrderStatus] ?? "bg-gray-400";
 
   return (
     <div className="space-y-3">
@@ -73,104 +123,107 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => (
-              <tr
-                key={order.id}
-                className="border-b border-border last:border-0 transition-colors hover:bg-surface"
-              >
-                <td className="px-5 py-4 font-mono text-xs text-subtle">
-                  {order.id.slice(0, 8)}
-                </td>
-                <td className="px-5 py-4">
-                  <span className="font-medium text-foreground capitalize">
-                    {order.serviceType?.replace(/-/g, " ")}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-muted">
-                  {formatDate(order.scheduledAt)}
-                </td>
-                <td className="px-5 py-4">
-                  <OrderStatusBadge status={order.status} />
-                </td>
-                <td className="px-5 py-4 font-serif text-foreground">
-                  {formatCurrency(Number(order.grossAmount))}
-                </td>
-                <td className="px-5 py-4">
-                  <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-muted">
-                    {order.paymentMethod === "mp_link"
-                      ? "Mercado Pago"
-                      : "Transferencia"}
-                  </span>
-                </td>
-                <td className="px-5 py-4 text-right">
-                  {confirm?.id === order.id ? (
-                    <div className="flex flex-col items-end gap-1.5">
-                      <span className="text-xs text-muted">
-                        {confirm.kind === "delete"
-                          ? "¿Eliminar definitivamente?"
-                          : "¿Cancelar esta orden?"}
-                      </span>
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setConfirm(null)}
-                          disabled={pending?.id === order.id}
-                          className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground hover:bg-surface"
-                        >
-                          Volver
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => runAction(confirm)}
-                          disabled={pending?.id === order.id}
-                          className={
-                            confirm.kind === "delete"
-                              ? "inline-flex items-center gap-1.5 rounded-lg bg-danger px-2.5 py-1.5 text-xs font-medium text-background hover:bg-danger/90 disabled:opacity-50"
-                              : "inline-flex items-center gap-1.5 rounded-lg bg-foreground px-2.5 py-1.5 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
-                          }
-                        >
-                          {confirm.kind === "delete" ? (
-                            <Trash2 className="h-3 w-3" />
-                          ) : (
-                            <Ban className="h-3 w-3" />
-                          )}
-                          {pending?.id === order.id
-                            ? confirm.kind === "delete"
-                              ? "Eliminando..."
-                              : "Cancelando..."
-                            : "Confirmar"}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-end gap-2">
-                      {order.status !== "CANCELADA" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setConfirm({ id: order.id, kind: "cancel" })
-                          }
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface"
-                        >
-                          <Ban className="h-3 w-3" />
-                          Cancelar
-                        </button>
+            {orders.map((order) => {
+              const status = statuses[order.id] ?? order.status;
+              return (
+                <tr
+                  key={order.id}
+                  className="border-b border-border last:border-0 transition-colors hover:bg-surface"
+                >
+                  <td className="px-5 py-4 font-mono text-xs text-subtle">
+                    {order.id.slice(0, 8)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="font-medium text-foreground capitalize">
+                      {order.serviceType?.replace(/-/g, " ")}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-muted">
+                    {formatDate(order.scheduledAt)}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-full ${dotFor(status)}`}
+                        aria-hidden="true"
+                      />
+                      <select
+                        value={status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            order.id,
+                            e.target.value as OrderStatus
+                          )
+                        }
+                        disabled={savingId === order.id}
+                        className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+                      >
+                        {ORDER_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                      {savingId === order.id && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />
                       )}
+                      {savedId === order.id && (
+                        <Check className="h-3.5 w-3.5 text-brand" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 font-serif text-foreground">
+                    {formatCurrency(Number(order.grossAmount))}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="inline-flex items-center rounded-full bg-surface px-2.5 py-0.5 text-xs font-medium text-muted">
+                      {order.paymentMethod === "mp_link"
+                        ? "Mercado Pago"
+                        : "Transferencia"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    {confirmDeleteId === order.id ? (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="text-xs text-muted">
+                          ¿Eliminar definitivamente?
+                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            disabled={deletingId === order.id}
+                            className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground hover:bg-surface"
+                          >
+                            Volver
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(order.id)}
+                            disabled={deletingId === order.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-danger px-2.5 py-1.5 text-xs font-medium text-background hover:bg-danger/90 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            {deletingId === order.id
+                              ? "Eliminando..."
+                              : "Confirmar"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() =>
-                          setConfirm({ id: order.id, kind: "delete" })
-                        }
+                        onClick={() => setConfirmDeleteId(order.id)}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/10"
                       >
                         <Trash2 className="h-3 w-3" />
                         Eliminar
                       </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {orders.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-16 text-center text-muted">

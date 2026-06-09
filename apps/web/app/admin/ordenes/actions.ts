@@ -36,10 +36,27 @@ export async function deleteOrder(
   }
 }
 
-export async function cancelOrder(
-  id: string
+export const ORDER_STATUSES = [
+  "PENDIENTE_PAGO",
+  "PAGADA",
+  "CONFIRMADA",
+  "EN_CAMINO",
+  "EN_PROGRESO",
+  "COMPLETADA",
+  "CANCELADA",
+  "PAGO_FALLIDO",
+] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export async function setOrderStatus(
+  id: string,
+  status: OrderStatus
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!(await assertAdmin())) return { ok: false, error: "No autorizado" };
+  if (!ORDER_STATUSES.includes(status)) {
+    return { ok: false, error: "Estado inválido" };
+  }
 
   try {
     const res = await fetch(
@@ -51,7 +68,7 @@ export async function cancelOrder(
           "Content-Type": "application/json",
           "x-admin-secret": process.env.ADMIN_SECRET ?? "",
         },
-        body: JSON.stringify({ status: "CANCELADA" }),
+        body: JSON.stringify({ status }),
       }
     );
     if (res.ok) {
