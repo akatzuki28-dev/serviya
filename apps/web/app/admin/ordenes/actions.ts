@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { ORDER_STATUSES, type OrderStatus } from "./statuses";
 
 async function assertAdmin(): Promise<boolean> {
   const session = await auth();
@@ -35,19 +36,6 @@ export async function deleteOrder(
     };
   }
 }
-
-export const ORDER_STATUSES = [
-  "PENDIENTE_PAGO",
-  "PAGADA",
-  "CONFIRMADA",
-  "EN_CAMINO",
-  "EN_PROGRESO",
-  "COMPLETADA",
-  "CANCELADA",
-  "PAGO_FALLIDO",
-] as const;
-
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export async function setOrderStatus(
   id: string,

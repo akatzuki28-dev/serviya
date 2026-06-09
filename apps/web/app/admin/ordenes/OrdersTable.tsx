@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Package, Trash2, Loader2, Check } from "lucide-react";
+import { deleteOrder, setOrderStatus } from "./actions";
 import {
-  deleteOrder,
-  setOrderStatus,
   ORDER_STATUSES,
+  STATUS_LABELS,
+  STATUS_DOT,
   type OrderStatus,
-} from "./actions";
+} from "./statuses";
 
 export interface AdminOrder {
   id: string;
@@ -19,29 +20,6 @@ export interface AdminOrder {
   paymentMethod: string;
   provider?: { name: string } | null;
 }
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDIENTE_PAGO: "Pendiente de pago",
-  PAGADA: "Pagada",
-  CONFIRMADA: "Confirmada",
-  EN_CAMINO: "En camino",
-  EN_PROGRESO: "En progreso",
-  COMPLETADA: "Completada",
-  CANCELADA: "Cancelada",
-  PAGO_FALLIDO: "Pago fallido",
-};
-
-// Color del punto según estado, para mantener la pista visual del badge.
-const STATUS_DOT: Record<OrderStatus, string> = {
-  PENDIENTE_PAGO: "bg-amber-500",
-  PAGADA: "bg-blue-500",
-  CONFIRMADA: "bg-violet-500",
-  EN_CAMINO: "bg-cyan-500",
-  EN_PROGRESO: "bg-cyan-500",
-  COMPLETADA: "bg-green-600",
-  CANCELADA: "bg-red-500",
-  PAGO_FALLIDO: "bg-red-500",
-};
 
 export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
   const safeOrders = Array.isArray(orders) ? orders : [];
