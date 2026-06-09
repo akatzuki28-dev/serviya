@@ -44,9 +44,10 @@ const STATUS_DOT: Record<OrderStatus, string> = {
 };
 
 export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
+  const safeOrders = Array.isArray(orders) ? orders : [];
   // Estado local por fila para reflejar el cambio de status sin recargar.
   const [statuses, setStatuses] = useState<Record<string, string>>(() =>
-    Object.fromEntries(orders.map((o) => [o.id, o.status]))
+    Object.fromEntries(safeOrders.map((o) => [o.id, o.status]))
   );
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -123,7 +124,7 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order) => {
+            {safeOrders.map((order) => {
               const status = statuses[order.id] ?? order.status;
               return (
                 <tr
@@ -224,7 +225,7 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                 </tr>
               );
             })}
-            {orders.length === 0 && (
+            {safeOrders.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-16 text-center text-muted">
                   <Package className="mx-auto mb-3 h-8 w-8 text-subtle" />

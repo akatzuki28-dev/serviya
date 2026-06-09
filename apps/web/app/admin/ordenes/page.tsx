@@ -15,9 +15,18 @@ async function getOrders() {
         },
       }
     );
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !Array.isArray(data)) {
+      console.error(
+        "[admin/ordenes] respuesta inesperada del API:",
+        res.status,
+        JSON.stringify(data)?.slice(0, 300)
+      );
+      return [];
+    }
+    return data;
+  } catch (err) {
+    console.error("[admin/ordenes] fetch falló:", err);
     return [];
   }
 }
