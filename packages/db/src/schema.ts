@@ -125,20 +125,39 @@ export const providerPayouts = pgTable("provider_payouts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const reviews = pgTable("reviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  orderId: uuid("order_id").notNull().references(() => orders.id),
+  providerId: uuid("provider_id").references(() => providers.id),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   orders: many(orders),
   addresses: many(userAddresses),
+  reviews: many(reviews),
 }));
 
 export const providersRelations = relations(providers, ({ many }) => ({
   orders: many(orders),
   payouts: many(providerPayouts),
+  reviews: many(reviews),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, { fields: [orders.userId], references: [users.id] }),
   provider: one(providers, { fields: [orders.providerId], references: [providers.id] }),
   statusHistory: many(orderStatusHistory),
+  review: one(reviews, { fields: [orders.id], references: [reviews.orderId] }),
+}));
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  user: one(users, { fields: [reviews.userId], references: [users.id] }),
+  order: one(orders, { fields: [reviews.orderId], references: [orders.id] }),
+  provider: one(providers, { fields: [reviews.providerId], references: [providers.id] }),
 }));
 
 export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({

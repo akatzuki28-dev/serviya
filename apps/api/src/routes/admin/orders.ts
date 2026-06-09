@@ -86,6 +86,7 @@ adminOrdersRouter.delete("/:id", async (req, res) => {
   await db
     .delete(schema.providerPayouts)
     .where(eq(schema.providerPayouts.orderId, id));
+  await db.delete(schema.reviews).where(eq(schema.reviews.orderId, id));
   await db.delete(schema.orders).where(eq(schema.orders.id, id));
 
   res.status(204).end();

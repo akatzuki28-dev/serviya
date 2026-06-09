@@ -259,6 +259,72 @@ adminUsersRouter.delete("/:id/addresses/:addressId", async (req, res) => {
   res.status(204).end();
 });
 
+// ── Reseñas del usuario ─────────────────────────────────────────────────────
+
+// GET /api/admin/users/:id/reviews — reseñas dejadas por el usuario
+adminUsersRouter.get("/:id/reviews", async (req, res) => {
+  const db = getDb();
+  const rows = await db.query.reviews.findMany({
+    where: eq(schema.reviews.userId, req.params.id),
+    orderBy: [desc(schema.reviews.createdAt)],
+    with: { provider: true, order: { columns: { serviceType: true, scheduledAt: true } } },
+  });
+  res.json(rows);
+});
+
+const reviewSchema = z.object({
+  orderId: z.string().uuid(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).nullable().optional(),
+});
+
+// POST /api/admin/users/:id/reviews — crear reseña sobre una orden COMPLETADA propia
+adminUsersRouter.post("/:id/reviews", async (req, res) => {
+  const parsed = reviewSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten() });
+    return;
+  }
+
+  const db = getDb();
+  const userId = req.params.id;
+
+  const order = await db.query.orders.findFirst({
+    where: eq(schema.orders.id, parsed.data.orderId),
+    columns: { id: true, userId: true, status: true, providerId: true },
+  });
+  if (!order || order.userId !== userId) {
+    res.status(404).json({ error: "Orden no encontrada" });
+    return;
+  }
+  if (order.status !== "COMPLETADA") {
+    res.status(400).json({ error: "Solo se pueden reseñar órdenes completadas" });
+    return;
+  }
+
+  const existing = await db.query.reviews.findFirst({
+    where: eq(schema.reviews.orderId, order.id),
+    columns: { id: true },
+  });
+  if (existing) {
+    res.status(409).json({ error: "Esta orden ya tiene una reseña" });
+    return;
+  }
+
+  const [created] = await db
+    .insert(schema.reviews)
+    .values({
+      userId,
+      orderId: order.id,
+      providerId: order.providerId ?? null,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment ?? null,
+    })
+    .returning();
+
+  res.status(201).json(created);
+});
+
 const patchSchema = z.object({
   role: z.enum(ROLE_VALUES).optional(),
   phone: z.string().max(50).nullable().optional(),
