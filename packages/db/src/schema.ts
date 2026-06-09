@@ -7,6 +7,8 @@ import {
   timestamp,
   numeric,
   jsonb,
+  integer,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -16,9 +18,42 @@ export const users = pgTable("users", {
   phone: varchar("phone", { length: 50 }),
   authProvider: varchar("auth_provider", { length: 50 }).notNull().default("guest"),
   role: varchar("role", { length: 20 }).notNull().default("CLIENT"),
+  // Columnas requeridas por @auth/drizzle-adapter (Next-Auth v5).
+  name: varchar("name", { length: 255 }),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
+  image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Tabla requerida por DrizzleAdapter para enlazar cuentas OAuth (Google, etc).
+export const accounts = pgTable(
+  "accounts",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 50 }).notNull(),
+    provider: varchar("provider", { length: 100 }).notNull(),
+    providerAccountId: varchar("provider_account_id", { length: 255 }).notNull(),
+    refresh_token: text("refresh_token"),
+    access_token: text("access_token"),
+    expires_at: integer("expires_at"),
+    token_type: varchar("token_type", { length: 50 }),
+    scope: varchar("scope", { length: 255 }),
+    id_token: text("id_token"),
+    session_state: varchar("session_state", { length: 255 }),
+  },
+  (account) => ({
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
+  })
+);
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, { fields: [accounts.userId], references: [users.id] }),
+}));
 
 export const providers = pgTable("providers", {
   id: uuid("id").defaultRandom().primaryKey(),

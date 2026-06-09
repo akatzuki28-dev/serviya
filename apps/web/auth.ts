@@ -1,13 +1,32 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { z } from "zod";
+import { getDb, schema } from "@sp/db";
+import { eq } from "drizzle-orm";
+
+function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const admins = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return admins.includes(email.toLowerCase());
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: DrizzleAdapter(getDb(), {
+    usersTable: schema.users,
+    accountsTable: schema.accounts,
+  }),
+  session: { strategy: "jwt" },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Permitir vincular cuentas OAuth a un user existente cuyo email coincida.
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       credentials: {
@@ -42,25 +61,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user) {
+      // user solo está presente en el sign-in inicial.
+      if (user?.id) {
         token.id = user.id;
-        const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-          .split(",")
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean);
-        const email = (user.email ?? "").toLowerCase();
-        if (email && adminEmails.includes(email)) {
+        const db = getDb();
+
+        // Promoción a ADMIN si el email está en ADMIN_EMAILS y la DB aún no lo refleja.
+        if (isAdminEmail(user.email)) {
+          await db
+            .update(schema.users)
+            .set({ role: "ADMIN", updatedAt: new Date() })
+            .where(eq(schema.users.id, user.id));
           token.role = "ADMIN";
         } else {
-          token.role = (user as any).role ?? "CLIENT";
+          const row = await db.query.users.findFirst({
+            where: eq(schema.users.id, user.id),
+          });
+          token.role = row?.role ?? "CLIENT";
         }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
-        (session.user as any).role = token.role as string;
+        (session.user as { id?: string; role?: string }).id = token.id as string;
+        (session.user as { id?: string; role?: string }).role = token.role as string;
       }
       return session;
     },
