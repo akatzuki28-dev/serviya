@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Órdenes" };
 async function getOrders() {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/orders`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders`,
       {
         cache: "no-store",
         headers: {

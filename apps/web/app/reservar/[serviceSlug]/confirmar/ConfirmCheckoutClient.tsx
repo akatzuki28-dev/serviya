@@ -37,6 +37,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
   const [guestPhone, setGuestPhone] = useState("");
   const [isPending, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const { data: quote, isLoading: quoteLoading } = useSWR(
     store.serviceType
@@ -61,11 +62,11 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || submitted) return;
     if (!store.serviceType || !store.scheduledAt || !store.address) {
       router.replace("/reservar");
     }
-  }, [mounted, store.serviceType, store.scheduledAt, store.address, router]);
+  }, [mounted, submitted, store.serviceType, store.scheduledAt, store.address, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -99,7 +100,12 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
           return;
         }
 
+        // Marcar como enviado ANTES de tocar el store, así el guard de
+        // arriba no dispara un replace("/reservar") al vaciarse el store.
+        setSubmitted(true);
+
         if (paymentMethod === "mp_link" && data.paymentUrl) {
+          store.reset();
           window.location.href = data.paymentUrl;
         } else {
           store.reset();
