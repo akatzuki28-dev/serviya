@@ -142,6 +142,123 @@ adminUsersRouter.get("/:id/orders", async (req, res) => {
   res.json(orders);
 });
 
+// ── Direcciones del usuario ─────────────────────────────────────────────────
+// Espejo admin-secret de /api/users/:id/addresses (que usa Bearer y no sirve
+// desde server components). El web scopea estas llamadas al userId de la sesión.
+
+const addressSchema = z.object({
+  label: z.string().max(50).nullable().optional(),
+  street: z.string().min(1).max(200),
+  city: z.string().min(1).max(100),
+  isDefault: z.boolean().optional(),
+});
+
+// GET /api/admin/users/:id/addresses
+adminUsersRouter.get("/:id/addresses", async (req, res) => {
+  const db = getDb();
+  const addresses = await db.query.userAddresses.findMany({
+    where: eq(schema.userAddresses.userId, req.params.id),
+    orderBy: [desc(schema.userAddresses.isDefault), desc(schema.userAddresses.createdAt)],
+  });
+  res.json(addresses);
+});
+
+// POST /api/admin/users/:id/addresses
+adminUsersRouter.post("/:id/addresses", async (req, res) => {
+  const parsed = addressSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten() });
+    return;
+  }
+
+  const db = getDb();
+
+  if (parsed.data.isDefault) {
+    await db
+      .update(schema.userAddresses)
+      .set({ isDefault: false })
+      .where(eq(schema.userAddresses.userId, req.params.id));
+  }
+
+  const [address] = await db
+    .insert(schema.userAddresses)
+    .values({
+      userId: req.params.id,
+      label: parsed.data.label ?? null,
+      street: parsed.data.street,
+      city: parsed.data.city,
+      isDefault: parsed.data.isDefault ?? false,
+    })
+    .returning();
+
+  res.status(201).json(address);
+});
+
+// PUT /api/admin/users/:id/addresses/:addressId
+adminUsersRouter.put("/:id/addresses/:addressId", async (req, res) => {
+  const parsed = addressSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Datos inválidos", details: parsed.error.flatten() });
+    return;
+  }
+
+  const db = getDb();
+
+  if (parsed.data.isDefault) {
+    await db
+      .update(schema.userAddresses)
+      .set({ isDefault: false })
+      .where(eq(schema.userAddresses.userId, req.params.id));
+  }
+
+  const [updated] = await db
+    .update(schema.userAddresses)
+    .set({
+      label: parsed.data.label ?? null,
+      street: parsed.data.street,
+      city: parsed.data.city,
+      isDefault: parsed.data.isDefault ?? false,
+    })
+    .where(eq(schema.userAddresses.id, req.params.addressId))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Dirección no encontrada" });
+    return;
+  }
+  res.json(updated);
+});
+
+// PATCH /api/admin/users/:id/addresses/:addressId/default — marcar como default
+adminUsersRouter.patch("/:id/addresses/:addressId/default", async (req, res) => {
+  const db = getDb();
+  await db
+    .update(schema.userAddresses)
+    .set({ isDefault: false })
+    .where(eq(schema.userAddresses.userId, req.params.id));
+
+  const [updated] = await db
+    .update(schema.userAddresses)
+    .set({ isDefault: true })
+    .where(eq(schema.userAddresses.id, req.params.addressId))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Dirección no encontrada" });
+    return;
+  }
+  res.json(updated);
+});
+
+// DELETE /api/admin/users/:id/addresses/:addressId
+adminUsersRouter.delete("/:id/addresses/:addressId", async (req, res) => {
+  const db = getDb();
+  await db
+    .delete(schema.userAddresses)
+    .where(eq(schema.userAddresses.id, req.params.addressId));
+  res.status(204).end();
+});
+
 const patchSchema = z.object({
   role: z.enum(ROLE_VALUES).optional(),
   phone: z.string().max(50).nullable().optional(),
