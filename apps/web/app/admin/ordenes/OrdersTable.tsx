@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Package, Trash2 } from "lucide-react";
-import { deleteOrder } from "./actions";
+import { Package, Trash2, Ban } from "lucide-react";
+import { deleteOrder, cancelOrder } from "./actions";
 
 export interface AdminOrder {
   id: string;
@@ -16,19 +16,24 @@ export interface AdminOrder {
   provider?: { name: string } | null;
 }
 
+type PendingAction = { id: string; kind: "delete" | "cancel" };
+
 export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<PendingAction | null>(null);
+  const [pending, setPending] = useState<PendingAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  function handleDelete(id: string) {
+  function runAction(action: PendingAction) {
     setError(null);
-    setPendingId(id);
+    setPending(action);
     startTransition(async () => {
-      const result = await deleteOrder(id);
-      setPendingId(null);
-      setConfirmId(null);
+      const result =
+        action.kind === "delete"
+          ? await deleteOrder(action.id)
+          : await cancelOrder(action.id);
+      setPending(null);
+      setConfirm(null);
       if (!result.ok) setError(result.error);
     });
   }
@@ -98,35 +103,70 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                   </span>
                 </td>
                 <td className="px-5 py-4 text-right">
-                  {confirmId === order.id ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setConfirmId(null)}
-                        disabled={pendingId === order.id}
-                        className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground hover:bg-surface"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(order.id)}
-                        disabled={pendingId === order.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-danger px-2.5 py-1.5 text-xs font-medium text-background hover:bg-danger/90 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        {pendingId === order.id ? "Eliminando..." : "Confirmar"}
-                      </button>
+                  {confirm?.id === order.id ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="text-xs text-muted">
+                        {confirm.kind === "delete"
+                          ? "¿Eliminar definitivamente?"
+                          : "¿Cancelar esta orden?"}
+                      </span>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirm(null)}
+                          disabled={pending?.id === order.id}
+                          className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground hover:bg-surface"
+                        >
+                          Volver
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => runAction(confirm)}
+                          disabled={pending?.id === order.id}
+                          className={
+                            confirm.kind === "delete"
+                              ? "inline-flex items-center gap-1.5 rounded-lg bg-danger px-2.5 py-1.5 text-xs font-medium text-background hover:bg-danger/90 disabled:opacity-50"
+                              : "inline-flex items-center gap-1.5 rounded-lg bg-foreground px-2.5 py-1.5 text-xs font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+                          }
+                        >
+                          {confirm.kind === "delete" ? (
+                            <Trash2 className="h-3 w-3" />
+                          ) : (
+                            <Ban className="h-3 w-3" />
+                          )}
+                          {pending?.id === order.id
+                            ? confirm.kind === "delete"
+                              ? "Eliminando..."
+                              : "Cancelando..."
+                            : "Confirmar"}
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmId(order.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/10"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                      Eliminar
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      {order.status !== "CANCELADA" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setConfirm({ id: order.id, kind: "cancel" })
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface"
+                        >
+                          <Ban className="h-3 w-3" />
+                          Cancelar
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setConfirm({ id: order.id, kind: "delete" })
+                        }
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/10"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
