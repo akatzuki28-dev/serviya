@@ -22,8 +22,25 @@ async function getProviders(): Promise<AdminProvider[]> {
   }
 }
 
+async function getServices(): Promise<{ slug: string; name: string }[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/services`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as Array<{ slug: string; name: string }>;
+    return data.map((s) => ({ slug: s.slug, name: s.name }));
+  } catch {
+    return [];
+  }
+}
+
 export default async function AdminProveedoresPage() {
-  const providers = await getProviders();
+  const [providers, services] = await Promise.all([
+    getProviders(),
+    getServices(),
+  ]);
 
   return (
     <div>
@@ -59,7 +76,7 @@ export default async function AdminProveedoresPage() {
           </p>
         </div>
       ) : (
-        <ProvidersTable providers={providers} />
+        <ProvidersTable providers={providers} serviceOptions={services} />
       )}
     </div>
   );

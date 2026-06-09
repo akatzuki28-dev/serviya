@@ -2,10 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { createProvider, updateProvider, type ProviderInput } from "./actions";
+import {
+  createProvider,
+  updateProvider,
+  deleteProvider,
+  type ProviderInput,
+  type AdminUserLite,
+} from "./actions";
+import { UserCombobox } from "./UserCombobox";
 
 export interface ServiceOption {
   slug: string;
@@ -21,6 +28,8 @@ interface ProviderFormProps {
     serviceCategories: string[];
     coverageZones: string[];
     isActive: boolean;
+    userId: string | null;
+    linkedUser: AdminUserLite | null;
   };
 }
 
@@ -36,8 +45,11 @@ export function ProviderForm({ services, initial }: ProviderFormProps) {
   const [zones, setZones] = useState<string[]>(initial?.coverageZones ?? []);
   const [zoneDraft, setZoneDraft] = useState("");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [userId, setUserId] = useState<string | null>(initial?.userId ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   function toggleCategory(slug: string) {
     setCategories((prev) =>
@@ -89,6 +101,7 @@ export function ProviderForm({ services, initial }: ProviderFormProps) {
       serviceCategories: categories,
       coverageZones: finalZones,
       isActive,
+      userId,
     };
 
     startTransition(async () => {
@@ -212,6 +225,21 @@ export function ProviderForm({ services, initial }: ProviderFormProps) {
       </div>
 
       <div>
+        <label className="mb-2 block text-[11px] uppercase tracking-wider font-medium text-muted">
+          Usuario vinculado (opcional)
+        </label>
+        <UserCombobox
+          value={userId}
+          initialUser={initial?.linkedUser ?? null}
+          onChange={setUserId}
+        />
+        <p className="mt-1.5 text-[11px] text-subtle">
+          Si el proveedor tiene cuenta en la plataforma, vinculalo para que pueda
+          acceder a su propio panel.
+        </p>
+      </div>
+
+      <div>
         <label className="inline-flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
@@ -233,18 +261,80 @@ export function ProviderForm({ services, initial }: ProviderFormProps) {
         </p>
       )}
 
-      <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push("/admin/proveedores")}
-          disabled={isPending}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" loading={isPending}>
-          {isEdit ? "Guardar cambios" : "Crear proveedor"}
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        {isEdit ? (
+          <div className="flex flex-col items-start gap-2">
+            {!confirmDelete ? (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                disabled={isPending || isDeleting}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar proveedor
+              </button>
+            ) : (
+              <div className="flex flex-col items-start gap-2 rounded-xl border border-danger/30 bg-danger/5 p-3">
+                <p className="text-xs text-danger">
+                  ¿Eliminar definitivamente? Esto no se puede deshacer.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={isDeleting}
+                    className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-foreground hover:bg-surface"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => {
+                      setError(null);
+                      startDeleteTransition(async () => {
+                        const result = await deleteProvider(initial!.id);
+                        if (result.ok) {
+                          router.push("/admin/proveedores");
+                          router.refresh();
+                        } else {
+                          setError(
+                            result.error +
+                              (result.conflict
+                                ? ` (órdenes: ${result.conflict.orders}, payouts: ${result.conflict.payouts})`
+                                : "")
+                          );
+                          setConfirmDelete(false);
+                        }
+                      });
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-background hover:bg-danger/90 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {isDeleting ? "Eliminando..." : "Sí, eliminar"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <span />
+        )}
+
+        <div className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/admin/proveedores")}
+            disabled={isPending || isDeleting}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" loading={isPending} disabled={isDeleting}>
+            {isEdit ? "Guardar cambios" : "Crear proveedor"}
+          </Button>
+        </div>
       </div>
     </form>
   );

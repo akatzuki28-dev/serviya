@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, UserCheck } from "lucide-react";
 import { ProviderForm, type ServiceOption } from "../ProviderForm";
+import type { AdminUserLite } from "../actions";
 
 export const metadata: Metadata = { title: "Editar proveedor" };
 
@@ -13,6 +14,34 @@ interface AdminProvider {
   serviceCategories: string[];
   coverageZones: string[];
   isActive: boolean;
+  userId: string | null;
+}
+
+async function getLinkedUser(userId: string): Promise<AdminUserLite | null> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users?q=${encodeURIComponent(userId)}&limit=200`,
+      {
+        cache: "no-store",
+        headers: { "x-admin-secret": process.env.ADMIN_SECRET ?? "" },
+      }
+    );
+    if (!res.ok) return null;
+    // The search endpoint filters by email/phone, so it won't match by id.
+    // Fall back: fetch the broader list and find by id (small dataset for now).
+    const broader = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users?limit=200`,
+      {
+        cache: "no-store",
+        headers: { "x-admin-secret": process.env.ADMIN_SECRET ?? "" },
+      }
+    );
+    if (!broader.ok) return null;
+    const list = (await broader.json()) as AdminUserLite[];
+    return list.find((u) => u.id === userId) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function getProvider(id: string): Promise<AdminProvider | null> {
@@ -58,6 +87,8 @@ export default async function EditarProveedorPage({
 
   if (!provider) notFound();
 
+  const linkedUser = provider.userId ? await getLinkedUser(provider.userId) : null;
+
   return (
     <div>
       <Link
@@ -89,6 +120,8 @@ export default async function EditarProveedorPage({
           serviceCategories: provider.serviceCategories ?? [],
           coverageZones: provider.coverageZones ?? [],
           isActive: provider.isActive,
+          userId: provider.userId,
+          linkedUser,
         }}
       />
     </div>

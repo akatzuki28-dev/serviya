@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { getDb, schema } from "@sp/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { requireAdminSecret } from "../../middlewares/adminSecret";
 
 export const adminProvidersRouter = Router();
@@ -36,6 +36,7 @@ const createSchema = z.object({
   serviceCategories: z.array(z.string()).default([]),
   coverageZones: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
+  userId: z.string().uuid().nullable().optional(),
 });
 
 const updateSchema = createSchema.partial();
@@ -59,6 +60,7 @@ adminProvidersRouter.post("/", async (req, res) => {
       serviceCategories: parsed.data.serviceCategories,
       coverageZones: parsed.data.coverageZones,
       isActive: parsed.data.isActive,
+      userId: parsed.data.userId ?? null,
     })
     .returning();
 
@@ -97,4 +99,45 @@ adminProvidersRouter.patch("/:id", async (req, res) => {
   }
 
   res.json(updated);
+});
+
+// DELETE /api/admin/providers/:id — borrado físico, con guard de FK
+adminProvidersRouter.delete("/:id", async (req, res) => {
+  const db = getDb();
+  const id = req.params.id;
+
+  // Contar referencias antes de borrar para devolver mensaje útil
+  const [ordersCount] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.orders)
+    .where(eq(schema.orders.providerId, id));
+
+  const [payoutsCount] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.providerPayouts)
+    .where(eq(schema.providerPayouts.providerId, id));
+
+  const ordersN = ordersCount?.n ?? 0;
+  const payoutsN = payoutsCount?.n ?? 0;
+
+  if (ordersN > 0 || payoutsN > 0) {
+    res.status(409).json({
+      error: "No se puede eliminar: hay registros asociados",
+      details: { orders: ordersN, payouts: payoutsN },
+      hint: "Desactivá el proveedor en lugar de eliminarlo para preservar el historial.",
+    });
+    return;
+  }
+
+  const deleted = await db
+    .delete(schema.providers)
+    .where(eq(schema.providers.id, id))
+    .returning();
+
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Proveedor no encontrado" });
+    return;
+  }
+
+  res.status(204).end();
 });

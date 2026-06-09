@@ -10,6 +10,14 @@ export interface ProviderInput {
   serviceCategories: string[];
   coverageZones: string[];
   isActive: boolean;
+  userId: string | null;
+}
+
+export interface AdminUserLite {
+  id: string;
+  email: string;
+  phone: string | null;
+  role: string;
 }
 
 async function assertAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -96,4 +104,70 @@ export async function createProviderAndRedirect(input: ProviderInput) {
     redirect("/admin/proveedores");
   }
   return result;
+}
+
+export async function deleteProvider(
+  id: string
+): Promise<
+  | { ok: true }
+  | { ok: false; error: string; conflict?: { orders: number; payouts: number } }
+> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return auth;
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/providers/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        cache: "no-store",
+        headers: apiHeaders(),
+      }
+    );
+    if (res.status === 204) {
+      revalidatePath("/admin/proveedores");
+      return { ok: true };
+    }
+    if (res.status === 409) {
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        details?: { orders: number; payouts: number };
+        hint?: string;
+      };
+      return {
+        ok: false,
+        error: body.hint ?? body.error ?? "No se puede eliminar",
+        conflict: body.details,
+      };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, error: `Error ${res.status}: ${body || "fallo del API"}` };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Error desconocido",
+    };
+  }
+}
+
+export async function searchUsers(q: string): Promise<AdminUserLite[]> {
+  const auth = await assertAdmin();
+  if (!auth.ok) return [];
+
+  try {
+    const url = new URL(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`
+    );
+    if (q) url.searchParams.set("q", q);
+    url.searchParams.set("limit", "20");
+
+    const res = await fetch(url.toString(), {
+      cache: "no-store",
+      headers: apiHeaders(),
+    });
+    if (!res.ok) return [];
+    return (await res.json()) as AdminUserLite[];
+  } catch {
+    return [];
+  }
 }
