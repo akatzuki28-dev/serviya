@@ -10,6 +10,7 @@ import { usersRouter } from "./routes/users";
 import { pricingRouter } from "./routes/pricing";
 import { servicesRouter } from "./routes/services";
 import { adminServicesRouter } from "./routes/admin/services";
+import { adminProvidersRouter } from "./routes/admin/providers";
 import { mpWebhookRouter } from "./routes/webhooks/mp";
 import { whatsappWebhookRouter } from "./routes/webhooks/whatsapp";
 import { apiRateLimiter, webhookRateLimiter } from "./middlewares/rateLimiter";
@@ -52,6 +53,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/pricing", pricingRouter);
 app.use("/api/services", servicesRouter);
 app.use("/api/admin/services", adminServicesRouter);
+app.use("/api/admin/providers", adminProvidersRouter);
 app.use("/api/webhooks/mp", mpWebhookRouter);
 app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
