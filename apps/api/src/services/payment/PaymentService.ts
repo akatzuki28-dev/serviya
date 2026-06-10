@@ -9,7 +9,9 @@ export type PaymentEventStatus =
   | "approved"
   | "rejected"
   | "cancelled"
-  | "pending";
+  | "pending"
+  | "refunded"
+  | "charged_back";
 
 export interface PaymentEvent {
   orderId: string;

@@ -9,6 +9,7 @@ const statusStyles: Record<string, string> = {
   COMPLETADA: "bg-green-100 text-green-800",
   CANCELADA: "bg-red-100 text-red-800",
   PAGO_FALLIDO: "bg-red-100 text-red-800",
+  REEMBOLSADA: "bg-orange-100 text-orange-800",
 };
 
 const statusLabels: Record<string, string> = {
@@ -20,6 +21,7 @@ const statusLabels: Record<string, string> = {
   COMPLETADA: "Completada",
   CANCELADA: "Cancelada",
   PAGO_FALLIDO: "Pago fallido",
+  REEMBOLSADA: "Reembolsada",
 };
 
 interface BadgeProps {

@@ -17,6 +17,7 @@ const STATUS_VALUES = [
   "COMPLETADA",
   "CANCELADA",
   "PAGO_FALLIDO",
+  "REEMBOLSADA",
 ] as const;
 
 // GET /api/admin/orders — listado completo de órdenes (con proveedor)
