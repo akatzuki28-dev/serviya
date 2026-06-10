@@ -21,8 +21,11 @@ export function validateMPWebhook(
     return;
   }
 
-  // MP firma: "id={id}&request-id={requestId}&ts={ts}"
-  const dataId = req.query["data.id"] as string | undefined;
+  // MP arma el manifiesto con ':' y ';' como separadores y lo firma con HMAC-SHA256:
+  //   id:{data.id};request-id:{x-request-id};ts:{ts};
+  // Si data.id es alfanumérico debe ir en minúsculas (los payment_id son numéricos,
+  // así que toLowerCase es no-op, pero seguimos la spec al pie de la letra).
+  const dataId = (req.query["data.id"] as string | undefined)?.toLowerCase();
   const ts = xSignature.split(",").find((p) => p.startsWith("ts="))?.split("=")[1];
   const v1 = xSignature.split(",").find((p) => p.startsWith("v1="))?.split("=")[1];
 
@@ -31,13 +34,20 @@ export function validateMPWebhook(
     return;
   }
 
-  const manifest = `id=${dataId ?? ""};request-id=${xRequestId};ts=${ts};`;
+  const manifest = `id:${dataId ?? ""};request-id:${xRequestId};ts:${ts};`;
   const expected = crypto
     .createHmac("sha256", secret)
     .update(manifest)
     .digest("hex");
 
-  if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1))) {
+  // timingSafeEqual tira RangeError si los buffers difieren en longitud, así que
+  // comparamos longitud primero y respondemos 401 (no 500) ante una firma rara.
+  const expectedBuf = Buffer.from(expected);
+  const v1Buf = Buffer.from(v1);
+  if (
+    expectedBuf.length !== v1Buf.length ||
+    !crypto.timingSafeEqual(expectedBuf, v1Buf)
+  ) {
     res.status(401).json({ error: "Invalid webhook signature" });
     return;
   }
