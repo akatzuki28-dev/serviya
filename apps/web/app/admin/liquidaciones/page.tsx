@@ -42,7 +42,7 @@ export default async function AdminLiquidacionesPage() {
         <div>
           <h1 className="font-serif text-2xl text-foreground">Liquidaciones</h1>
           <p className="text-sm text-muted">
-            {payouts.length} liquidación{payouts.length !== 1 && "es"} —{" "}
+            {payouts.length} liquidaci{payouts.length === 1 ? "ón" : "ones"} —{" "}
             {pendientes} pendiente{pendientes !== 1 && "s"}
           </p>
         </div>
