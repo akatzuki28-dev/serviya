@@ -39,6 +39,22 @@ mpWebhookRouter.post("/", validateMPWebhook, async (req, res) => {
       return;
     }
 
+    // Guard de transición: solo procesamos pagos sobre órdenes que están
+    // esperando pago. Si la orden ya está resuelta (PAGADA, CANCELADA,
+    // COMPLETADA, etc.) registramos el paymentId para idempotencia pero NO
+    // pisamos el estado — ej: un pago aprobado tardío sobre una orden que un
+    // admin ya canceló (eso requiere un reembolso manual, no flipear a PAGADA).
+    if (order.status !== "PENDIENTE_PAGO") {
+      console.warn(
+        `[mp webhook] pago ${event.paymentId} (${event.status}) sobre orden ${order.id} en estado ${order.status}; no se cambia el estado`
+      );
+      await db
+        .update(schema.orders)
+        .set({ mpPaymentId: event.paymentId, updatedAt: new Date() })
+        .where(eq(schema.orders.id, order.id));
+      return;
+    }
+
     if (event.status === "approved") {
       await db
         .update(schema.orders)
@@ -55,17 +71,10 @@ mpWebhookRouter.post("/", validateMPWebhook, async (req, res) => {
         changedBy: "system",
       });
 
-      // Crear registro de payout para el proveedor
-      if (order.providerId) {
-        await db.insert(schema.providerPayouts).values({
-          providerId: order.providerId,
-          orderId: order.id,
-          grossAmount: order.grossAmount,
-          platformFee: order.platformFee,
-          netAmount: order.netAmount,
-          status: "PENDIENTE",
-        });
-      }
+      // Nota: el payout del proveedor NO se crea acá. Las liquidaciones se
+      // generan desde /admin/liquidaciones sobre órdenes COMPLETADA (un solo
+      // origen de verdad), porque al momento del pago todavía no hay proveedor
+      // asignado y el servicio no se prestó.
 
       // Notificación al cliente
       if (order.userId) {

@@ -117,7 +117,9 @@ export const userAddresses = pgTable("user_addresses", {
 export const providerPayouts = pgTable("provider_payouts", {
   id: uuid("id").defaultRandom().primaryKey(),
   providerId: uuid("provider_id").notNull().references(() => providers.id),
-  orderId: uuid("order_id").notNull().references(() => orders.id),
+  // Una liquidación por orden: índice único que endurece contra duplicados
+  // (reintentos de webhook, doble click en "Generar", etc.).
+  orderId: uuid("order_id").notNull().references(() => orders.id).unique(),
   grossAmount: numeric("gross_amount", { precision: 10, scale: 2 }).notNull(),
   platformFee: numeric("platform_fee", { precision: 10, scale: 2 }).notNull(),
   netAmount: numeric("net_amount", { precision: 10, scale: 2 }).notNull(),

@@ -1,0 +1,1 @@
+ALTER TABLE "provider_payouts" ADD CONSTRAINT "provider_payouts_order_id_unique" UNIQUE("order_id");
