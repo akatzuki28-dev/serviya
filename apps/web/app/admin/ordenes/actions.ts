@@ -37,6 +37,39 @@ export async function deleteOrder(
   }
 }
 
+export async function setOrderProvider(
+  id: string,
+  providerId: string | null
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await assertAdmin())) return { ok: false, error: "No autorizado" };
+
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/orders/${encodeURIComponent(id)}/provider`,
+      {
+        method: "PATCH",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-secret": process.env.ADMIN_SECRET ?? "",
+        },
+        body: JSON.stringify({ providerId }),
+      }
+    );
+    if (res.ok) {
+      revalidatePath("/admin/ordenes");
+      return { ok: true };
+    }
+    const body = await res.text().catch(() => "");
+    return { ok: false, error: `Error ${res.status}: ${body || "fallo del API"}` };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Error desconocido",
+    };
+  }
+}
+
 export async function setOrderStatus(
   id: string,
   status: OrderStatus

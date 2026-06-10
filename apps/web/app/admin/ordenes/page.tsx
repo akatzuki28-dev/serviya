@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Package } from "lucide-react";
-import { OrdersTable } from "./OrdersTable";
+import { OrdersTable, type ProviderOption } from "./OrdersTable";
 
 export const metadata: Metadata = { title: "Órdenes" };
 
@@ -31,8 +31,33 @@ async function getOrders() {
   }
 }
 
+async function getProviders(): Promise<ProviderOption[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/providers`,
+      {
+        cache: "no-store",
+        headers: { "x-admin-secret": process.env.ADMIN_SECRET ?? "" },
+      }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    // Solo activos, ordenados por nombre para el selector.
+    return data
+      .filter((p: { isActive?: boolean }) => p.isActive !== false)
+      .map((p: { id: string; name: string }) => ({ id: p.id, name: p.name }))
+      .sort((a: ProviderOption, b: ProviderOption) =>
+        a.name.localeCompare(b.name, "es")
+      );
+  } catch (err) {
+    console.error("[admin/ordenes] fetch proveedores falló:", err);
+    return [];
+  }
+}
+
 export default async function AdminOrdenesPage() {
-  const orders = await getOrders();
+  const [orders, providers] = await Promise.all([getOrders(), getProviders()]);
 
   return (
     <div>
@@ -48,7 +73,7 @@ export default async function AdminOrdenesPage() {
         </div>
       </div>
 
-      <OrdersTable orders={orders} />
+      <OrdersTable orders={orders} providers={providers} />
     </div>
   );
 }

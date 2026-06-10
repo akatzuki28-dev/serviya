@@ -3,13 +3,18 @@
 import { useState, useTransition } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Package, Trash2, Loader2, Check } from "lucide-react";
-import { deleteOrder, setOrderStatus } from "./actions";
+import { deleteOrder, setOrderStatus, setOrderProvider } from "./actions";
 import {
   ORDER_STATUSES,
   STATUS_LABELS,
   STATUS_DOT,
   type OrderStatus,
 } from "./statuses";
+
+export interface ProviderOption {
+  id: string;
+  name: string;
+}
 
 export interface AdminOrder {
   id: string;
@@ -18,17 +23,29 @@ export interface AdminOrder {
   status: string;
   grossAmount: string;
   paymentMethod: string;
+  providerId?: string | null;
   provider?: { name: string } | null;
 }
 
-export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
+export function OrdersTable({
+  orders,
+  providers = [],
+}: {
+  orders: AdminOrder[];
+  providers?: ProviderOption[];
+}) {
   const safeOrders = Array.isArray(orders) ? orders : [];
   // Estado local por fila para reflejar el cambio de status sin recargar.
   const [statuses, setStatuses] = useState<Record<string, string>>(() =>
     Object.fromEntries(safeOrders.map((o) => [o.id, o.status]))
   );
+  // Estado local del proveedor asignado por fila ("" = sin asignar).
+  const [providerIds, setProviderIds] = useState<Record<string, string>>(() =>
+    Object.fromEntries(safeOrders.map((o) => [o.id, o.providerId ?? ""]))
+  );
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [savingProviderId, setSavingProviderId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +65,24 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
         setTimeout(() => setSavedId((cur) => (cur === id ? null : cur)), 2000);
       } else {
         setStatuses((s) => ({ ...s, [id]: prev! })); // revertir
+        setError(result.error);
+      }
+    });
+  }
+
+  function handleProviderChange(id: string, nextProviderId: string) {
+    const prev = providerIds[id] ?? "";
+    setError(null);
+    setProviderIds((p) => ({ ...p, [id]: nextProviderId })); // optimista
+    setSavingProviderId(id);
+    startTransition(async () => {
+      const result = await setOrderProvider(
+        id,
+        nextProviderId === "" ? null : nextProviderId
+      );
+      setSavingProviderId(null);
+      if (!result.ok) {
+        setProviderIds((p) => ({ ...p, [id]: prev })); // revertir
         setError(result.error);
       }
     });
@@ -89,6 +124,9 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
               </th>
               <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-wider text-muted">
                 Estado
+              </th>
+              <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-wider text-muted">
+                Proveedor
               </th>
               <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-wider text-muted">
                 Monto
@@ -151,6 +189,30 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
                       )}
                     </div>
                   </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={providerIds[order.id] ?? ""}
+                        onChange={(e) =>
+                          handleProviderChange(order.id, e.target.value)
+                        }
+                        disabled={
+                          savingProviderId === order.id || providers.length === 0
+                        }
+                        className="max-w-[160px] rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+                      >
+                        <option value="">Sin asignar</option>
+                        {providers.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                      {savingProviderId === order.id && (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted" />
+                      )}
+                    </div>
+                  </td>
                   <td className="px-5 py-4 font-serif text-foreground">
                     {formatCurrency(Number(order.grossAmount))}
                   </td>
@@ -205,7 +267,7 @@ export function OrdersTable({ orders }: { orders: AdminOrder[] }) {
             })}
             {safeOrders.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-16 text-center text-muted">
+                <td colSpan={8} className="px-5 py-16 text-center text-muted">
                   <Package className="mx-auto mb-3 h-8 w-8 text-subtle" />
                   <p className="font-serif text-base">No hay órdenes todavía</p>
                   <p className="mt-1 text-xs">

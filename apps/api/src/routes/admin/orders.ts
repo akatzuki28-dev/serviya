@@ -65,6 +65,49 @@ adminOrdersRouter.patch("/:id", async (req, res) => {
   res.json(updated);
 });
 
+const patchProviderSchema = z.object({
+  providerId: z.string().uuid().nullable(),
+});
+
+// PATCH /api/admin/orders/:id/provider — asignar/desasignar proveedor
+adminOrdersRouter.patch("/:id/provider", async (req, res) => {
+  const parsed = patchProviderSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res
+      .status(400)
+      .json({ error: "Datos inválidos", details: parsed.error.flatten() });
+    return;
+  }
+
+  const db = getDb();
+  const id = req.params.id;
+
+  // Si se asigna un proveedor, validar que exista.
+  if (parsed.data.providerId) {
+    const provider = await db.query.providers.findFirst({
+      where: eq(schema.providers.id, parsed.data.providerId),
+      columns: { id: true },
+    });
+    if (!provider) {
+      res.status(404).json({ error: "Proveedor no encontrado" });
+      return;
+    }
+  }
+
+  const [updated] = await db
+    .update(schema.orders)
+    .set({ providerId: parsed.data.providerId, updatedAt: new Date() })
+    .where(eq(schema.orders.id, id))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Orden no encontrada" });
+    return;
+  }
+
+  res.json(updated);
+});
+
 // DELETE /api/admin/orders/:id — borra la orden y sus filas hijas (FK)
 adminOrdersRouter.delete("/:id", async (req, res) => {
   const db = getDb();
