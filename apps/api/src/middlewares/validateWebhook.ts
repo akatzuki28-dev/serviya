@@ -90,6 +90,39 @@ export function validateMobbexWebhook(
   next();
 }
 
+export function validateUalaWebhook(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const rawBody = req.body as Buffer;
+
+  const secret = process.env["UALA_WEBHOOK_SECRET"];
+  if (!secret) {
+    res.status(500).json({ error: "Webhook secret not configured" });
+    return;
+  }
+
+  // Ualá Bis NO firma los webhooks con HMAC. Validamos un secreto compartido que
+  // viaja en el query del notification_url que registramos al crear la orden
+  // (?secret=...). La autenticidad del estado se refuerza en el servicio, que
+  // re-consulta la orden a la API de Ualá.
+  const provided = req.query["secret"] as string | undefined;
+  const providedBuf = Buffer.from(provided ?? "");
+  const secretBuf = Buffer.from(secret);
+
+  if (
+    providedBuf.length !== secretBuf.length ||
+    !crypto.timingSafeEqual(providedBuf, secretBuf)
+  ) {
+    res.status(401).json({ error: "Invalid webhook secret" });
+    return;
+  }
+
+  req.body = JSON.parse(rawBody.toString());
+  next();
+}
+
 export function validateWhatsAppWebhook(
   req: Request,
   res: Response,

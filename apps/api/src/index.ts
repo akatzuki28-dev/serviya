@@ -17,6 +17,7 @@ import { adminPayoutsRouter } from "./routes/admin/payouts";
 import { adminMetricsRouter } from "./routes/admin/metrics";
 import { mpWebhookRouter } from "./routes/webhooks/mp";
 import { mobbexWebhookRouter } from "./routes/webhooks/mobbex";
+import { ualaWebhookRouter } from "./routes/webhooks/uala";
 import { whatsappWebhookRouter } from "./routes/webhooks/whatsapp";
 import { apiRateLimiter, webhookRateLimiter } from "./middlewares/rateLimiter";
 import { seedServicesIfEmpty } from "./seed";
@@ -65,6 +66,7 @@ app.use("/api/admin/payouts", adminPayoutsRouter);
 app.use("/api/admin/metrics", adminMetricsRouter);
 app.use("/api/webhooks/mp", mpWebhookRouter);
 app.use("/api/webhooks/mobbex", mobbexWebhookRouter);
+app.use("/api/webhooks/uala", ualaWebhookRouter);
 app.use("/api/webhooks/whatsapp", whatsappWebhookRouter);
 
 // ── Health check ───────────────────────────────────────────────────────────────

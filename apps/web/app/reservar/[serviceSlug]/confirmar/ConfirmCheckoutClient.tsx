@@ -29,8 +29,8 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
   const router = useRouter();
   const store = useBookingStore();
   const [mounted, setMounted] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"mobbex" | "transfer">(
-    "mobbex"
+  const [paymentMethod, setPaymentMethod] = useState<"uala" | "transfer">(
+    "uala"
   );
   const [notes, setNotes] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -104,7 +104,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
         // arriba no dispara un replace("/reservar") al vaciarse el store.
         setSubmitted(true);
 
-        if (paymentMethod === "mobbex" && data.paymentUrl) {
+        if (paymentMethod === "uala" && data.paymentUrl) {
           store.reset();
           window.location.href = data.paymentUrl;
         } else {
@@ -226,7 +226,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
         <div className="space-y-3">
           <label
             className={`flex cursor-pointer items-start gap-4 rounded-xl border-2 p-4 transition-all duration-200 ${
-              paymentMethod === "mobbex"
+              paymentMethod === "uala"
                 ? "border-brand bg-brand-light shadow-[var(--shadow-soft)]"
                 : "border-border hover:border-brand/30"
             }`}
@@ -234,9 +234,9 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
             <input
               type="radio"
               name="payment"
-              value="mobbex"
-              checked={paymentMethod === "mobbex"}
-              onChange={() => setPaymentMethod("mobbex")}
+              value="uala"
+              checked={paymentMethod === "uala"}
+              onChange={() => setPaymentMethod("uala")}
               className="mt-1 accent-[var(--color-brand)]"
             />
             <div>
@@ -334,7 +334,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
           Atrás
         </Button>
         <Button type="submit" size="lg" loading={isPending}>
-          {paymentMethod === "mobbex"
+          {paymentMethod === "uala"
             ? "Pagar con tarjeta"
             : "Confirmar reserva"}
         </Button>

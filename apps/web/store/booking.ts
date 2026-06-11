@@ -28,7 +28,7 @@ export interface BookingState {
   extras: string[];
 
   // Paso 3
-  paymentMethod: "mobbex" | "transfer" | null;
+  paymentMethod: "uala" | "transfer" | null;
   clientNotes: string;
   guestEmail: string;
   guestPhone: string;
@@ -48,7 +48,7 @@ export interface BookingState {
   setSchedule: (scheduledAt: string, zone: string | null) => void;
   setAddress: (address: BookingAddress) => void;
   toggleExtra: (extraId: string) => void;
-  setPaymentMethod: (method: "mobbex" | "transfer") => void;
+  setPaymentMethod: (method: "uala" | "transfer") => void;
   setNotes: (notes: string) => void;
   setGuestInfo: (email: string, phone: string) => void;
   setQuote: (quote: BookingState["quote"]) => void;

@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import {
   validateMPWebhook,
   validateMobbexWebhook,
+  validateUalaWebhook,
   validateWhatsAppWebhook,
 } from "../../src/middlewares/validateWebhook";
 
@@ -162,6 +163,62 @@ describe("validateMobbexWebhook", () => {
       expect(res.status).toHaveBeenCalledWith(500);
     } finally {
       process.env.MOBBEX_WEBHOOK_SECRET = prev;
+    }
+  });
+});
+
+// ── UALÁ BIS ───────────────────────────────────────────────────────────────
+describe("validateUalaWebhook", () => {
+  const secret = process.env.UALA_WEBHOOK_SECRET!;
+
+  // null = omitir el secreto del query (no usamos undefined: dispararía el
+  // valor por defecto del parámetro).
+  function buildReq(querySecret: string | null = secret) {
+    const body = Buffer.from(JSON.stringify({ uuid: "U1", status: "APPROVED" }));
+    return {
+      body,
+      headers: {},
+      query: querySecret === null ? {} : { secret: querySecret },
+    } as any;
+  }
+
+  it("happy path: secreto correcto pasa al next y parsea body", () => {
+    const req = buildReq();
+    const res = mockRes();
+    const next = vi.fn();
+    validateUalaWebhook(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(req.body).toEqual({ uuid: "U1", status: "APPROVED" });
+  });
+
+  it("401 si falta el secreto en el query", () => {
+    const req = buildReq(null);
+    const res = mockRes();
+    const next = vi.fn();
+    validateUalaWebhook(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("401 si el secreto no coincide", () => {
+    const req = buildReq("wrong-secret");
+    const res = mockRes();
+    const next = vi.fn();
+    validateUalaWebhook(req, res, next);
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
+  it("500 si UALA_WEBHOOK_SECRET no está configurado", () => {
+    const prev = process.env.UALA_WEBHOOK_SECRET;
+    delete process.env.UALA_WEBHOOK_SECRET;
+    try {
+      const req = buildReq("anything");
+      const res = mockRes();
+      const next = vi.fn();
+      validateUalaWebhook(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(500);
+    } finally {
+      process.env.UALA_WEBHOOK_SECRET = prev;
     }
   });
 });

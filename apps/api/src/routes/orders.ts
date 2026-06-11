@@ -25,9 +25,10 @@ const createOrderSchema = z.object({
       city: z.string(),
     })
     .optional(),
-  // "mp_link" se mantiene por compatibilidad con clientes cacheados; cualquier
-  // método distinto de "transfer" se cobra online con el proveedor activo.
-  paymentMethod: z.enum(["mp_link", "mobbex", "transfer"]),
+  // Cualquier método distinto de "transfer" se cobra online con el proveedor
+  // activo (PAYMENT_PROVIDER). Los tokens previos (mp_link/mobbex) se mantienen
+  // por compatibilidad con clientes cacheados.
+  paymentMethod: z.enum(["uala", "mobbex", "mp_link", "transfer"]),
   clientNotes: z.string().max(500).optional(),
   guestEmail: z.string().email().optional(),
   guestPhone: z.string().optional(),
