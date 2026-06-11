@@ -57,6 +57,39 @@ export function validateMPWebhook(
   next();
 }
 
+export function validateMobbexWebhook(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const rawBody = req.body as Buffer;
+
+  const secret = process.env["MOBBEX_WEBHOOK_SECRET"];
+  if (!secret) {
+    res.status(500).json({ error: "Webhook secret not configured" });
+    return;
+  }
+
+  // Mobbex NO firma los webhooks con HMAC. Validamos un secreto compartido que
+  // viaja en el query del webhook URL que registramos al crear el checkout
+  // (?secret=...). La autenticidad del estado se refuerza en el servicio, que
+  // re-consulta la operación a la API de Mobbex.
+  const provided = req.query["secret"] as string | undefined;
+  const providedBuf = Buffer.from(provided ?? "");
+  const secretBuf = Buffer.from(secret);
+
+  if (
+    providedBuf.length !== secretBuf.length ||
+    !crypto.timingSafeEqual(providedBuf, secretBuf)
+  ) {
+    res.status(401).json({ error: "Invalid webhook secret" });
+    return;
+  }
+
+  req.body = JSON.parse(rawBody.toString());
+  next();
+}
+
 export function validateWhatsAppWebhook(
   req: Request,
   res: Response,

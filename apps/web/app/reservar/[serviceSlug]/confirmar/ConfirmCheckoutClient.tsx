@@ -29,8 +29,8 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
   const router = useRouter();
   const store = useBookingStore();
   const [mounted, setMounted] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"mp_link" | "transfer">(
-    "mp_link"
+  const [paymentMethod, setPaymentMethod] = useState<"mobbex" | "transfer">(
+    "mobbex"
   );
   const [notes, setNotes] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -104,7 +104,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
         // arriba no dispara un replace("/reservar") al vaciarse el store.
         setSubmitted(true);
 
-        if (paymentMethod === "mp_link" && data.paymentUrl) {
+        if (paymentMethod === "mobbex" && data.paymentUrl) {
           store.reset();
           window.location.href = data.paymentUrl;
         } else {
@@ -226,7 +226,7 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
         <div className="space-y-3">
           <label
             className={`flex cursor-pointer items-start gap-4 rounded-xl border-2 p-4 transition-all duration-200 ${
-              paymentMethod === "mp_link"
+              paymentMethod === "mobbex"
                 ? "border-brand bg-brand-light shadow-[var(--shadow-soft)]"
                 : "border-border hover:border-brand/30"
             }`}
@@ -234,18 +234,18 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
             <input
               type="radio"
               name="payment"
-              value="mp_link"
-              checked={paymentMethod === "mp_link"}
-              onChange={() => setPaymentMethod("mp_link")}
+              value="mobbex"
+              checked={paymentMethod === "mobbex"}
+              onChange={() => setPaymentMethod("mobbex")}
               className="mt-1 accent-[var(--color-brand)]"
             />
             <div>
               <div className="flex items-center gap-2 font-medium text-foreground">
                 <CreditCard className="h-4 w-4 text-brand" />
-                Mercado Pago
+                Tarjeta de crédito o débito
               </div>
               <p className="mt-1 text-sm text-muted">
-                Tarjeta de crédito, débito o QR. Redirigimos a MP.
+                Pagá con tarjeta en cuotas de forma segura. Te llevamos al checkout.
               </p>
             </div>
           </label>
@@ -334,8 +334,8 @@ export function ConfirmCheckoutClient({ serviceSlug }: ConfirmCheckoutProps) {
           Atrás
         </Button>
         <Button type="submit" size="lg" loading={isPending}>
-          {paymentMethod === "mp_link"
-            ? "Pagar con Mercado Pago"
+          {paymentMethod === "mobbex"
+            ? "Pagar con tarjeta"
             : "Confirmar reserva"}
         </Button>
       </div>

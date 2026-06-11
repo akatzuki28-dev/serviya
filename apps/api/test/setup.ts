@@ -5,6 +5,12 @@ process.env.NODE_ENV = "test";
 process.env.NEXTAUTH_SECRET = "test-secret-please-do-not-use-in-prod";
 process.env.MP_ACCESS_TOKEN = "TEST-mp-token";
 process.env.MP_WEBHOOK_SECRET = "test-mp-webhook-secret";
+// Los tests de órdenes mockean MPPersonalPaymentService, así que forzamos el
+// proveedor MP para que el factory devuelva esa clase. Mobbex se testea aparte.
+process.env.PAYMENT_PROVIDER = "mp";
+process.env.MOBBEX_API_KEY = "test-mobbex-api-key";
+process.env.MOBBEX_ACCESS_TOKEN = "test-mobbex-access-token";
+process.env.MOBBEX_WEBHOOK_SECRET = "test-mobbex-webhook-secret";
 process.env.WA_ACCESS_TOKEN = "test-wa-token";
 process.env.WA_PHONE_NUMBER_ID = "1234567890";
 process.env.WA_VERIFY_TOKEN = "test-verify-token";

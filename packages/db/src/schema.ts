@@ -82,6 +82,12 @@ export const orders = pgTable("orders", {
   clientNotes: text("client_notes"),
   mpPreferenceId: varchar("mp_preference_id", { length: 255 }),
   mpPaymentId: varchar("mp_payment_id", { length: 255 }),
+  // Columnas genéricas de pasarela (Mobbex y futuros proveedores). No atadas a
+  // MP: paymentProvider identifica quién procesó ("mp" | "mobbex"), y los dos
+  // gateway* guardan el id del checkout y del pago del proveedor activo.
+  paymentProvider: varchar("payment_provider", { length: 20 }),
+  gatewayPreferenceId: varchar("gateway_preference_id", { length: 255 }),
+  gatewayPaymentId: varchar("gateway_payment_id", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

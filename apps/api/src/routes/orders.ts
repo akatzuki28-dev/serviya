@@ -4,12 +4,14 @@ import { getDb, schema } from "@sp/db";
 import { eq, desc } from "drizzle-orm";
 import { requireAuth, requireRole, type AuthRequest } from "../middlewares/auth";
 import { bookingRateLimiter } from "../middlewares/rateLimiter";
-import { MPPersonalPaymentService } from "../services/payment/MPPersonalPaymentService";
+import { getPaymentService, resolveProvider } from "../services/payment";
 import { PricingService } from "../services/PricingService";
 import { NotificationService } from "../services/NotificationService";
 
 export const ordersRouter = Router();
-const paymentService = new MPPersonalPaymentService();
+// Proveedor activo del piloto (Mobbex por defecto; MP si la cuenta se reactiva).
+const paymentProvider = resolveProvider();
+const paymentService = getPaymentService(paymentProvider);
 
 const createOrderSchema = z.object({
   serviceType: z.string().min(1),
@@ -23,7 +25,9 @@ const createOrderSchema = z.object({
       city: z.string(),
     })
     .optional(),
-  paymentMethod: z.enum(["mp_link", "transfer"]),
+  // "mp_link" se mantiene por compatibilidad con clientes cacheados; cualquier
+  // método distinto de "transfer" se cobra online con el proveedor activo.
+  paymentMethod: z.enum(["mp_link", "mobbex", "transfer"]),
   clientNotes: z.string().max(500).optional(),
   guestEmail: z.string().email().optional(),
   guestPhone: z.string().optional(),
@@ -99,11 +103,16 @@ ordersRouter.post("/", bookingRateLimiter, async (req: AuthRequest, res) => {
 
     let paymentUrl: string | null = null;
 
-    if (data.paymentMethod === "mp_link") {
+    if (data.paymentMethod !== "transfer") {
       const link = await paymentService.createPaymentLink(order);
       await db
         .update(schema.orders)
-        .set({ mpPreferenceId: link.externalId })
+        .set({
+          paymentProvider,
+          gatewayPreferenceId: link.externalId,
+          // Mantenemos mpPreferenceId si el proveedor activo sigue siendo MP.
+          ...(paymentProvider === "mp" ? { mpPreferenceId: link.externalId } : {}),
+        })
         .where(eq(schema.orders.id, order.id));
       paymentUrl = link.url;
     }
