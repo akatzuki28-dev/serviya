@@ -228,6 +228,12 @@ describe("POST /api/webhooks/uala", () => {
     expect(fakeDb.update).not.toHaveBeenCalled();
   });
 
+  it("GET de verificación de URL → 200 OK", async () => {
+    const res = await request(makeApp()).get("/api/webhooks/uala");
+    expect(res.status).toBe(200);
+    expect(res.text).toBe("OK");
+  });
+
   it("payload sin uuid (verifyWebhook lanza) → 200 y no toca DB", async () => {
     verifyWebhookMock.mockRejectedValue(new Error("Missing uuid"));
     const res = await request(makeApp()).post("/api/webhooks/uala").send({});

@@ -119,7 +119,16 @@ export function validateUalaWebhook(
     return;
   }
 
-  req.body = JSON.parse(rawBody.toString());
+  // Un ping de validación puede venir con body vacío o no-JSON: no reventamos
+  // con 500. El handler responde 200 igual y hace no-op si falta el uuid.
+  try {
+    req.body =
+      Buffer.isBuffer(rawBody) && rawBody.length
+        ? JSON.parse(rawBody.toString())
+        : {};
+  } catch {
+    req.body = {};
+  }
   next();
 }
 

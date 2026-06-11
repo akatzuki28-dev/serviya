@@ -8,6 +8,13 @@ import { NotificationService } from "../../services/NotificationService";
 export const ualaWebhookRouter = Router();
 const paymentService = new UalaBisPaymentService();
 
+// Verificación de URL: algunos paneles (Ualá incluido) hacen un GET al
+// notification_url para validar que el endpoint existe antes de guardarlo.
+// Respondemos 200 para que la asociación del webhook no falle por "conexión".
+ualaWebhookRouter.get("/", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 ualaWebhookRouter.post("/", validateUalaWebhook, async (req, res) => {
   // Responder 200 inmediatamente para que Ualá no reintente.
   res.status(200).send("OK");

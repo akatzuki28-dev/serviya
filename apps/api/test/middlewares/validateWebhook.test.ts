@@ -208,6 +208,20 @@ describe("validateUalaWebhook", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
+  it("body vacío (ping de validación) con secreto OK → next con body {} sin 500", () => {
+    const req = {
+      body: Buffer.from(""),
+      headers: {},
+      query: { secret },
+    } as any;
+    const res = mockRes();
+    const next = vi.fn();
+    validateUalaWebhook(req, res, next);
+    expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalledWith(500);
+    expect(req.body).toEqual({});
+  });
+
   it("500 si UALA_WEBHOOK_SECRET no está configurado", () => {
     const prev = process.env.UALA_WEBHOOK_SECRET;
     delete process.env.UALA_WEBHOOK_SECRET;
