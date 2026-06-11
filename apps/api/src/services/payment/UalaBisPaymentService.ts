@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import type { Order } from "@sp/db";
 import type {
   PaymentLink,
@@ -96,6 +96,22 @@ export class UalaBisPaymentService implements PaymentService {
     return `${this.apiUrl}/api/webhooks/uala?secret=${this.webhookSecret}`;
   }
 
+  // Envuelve un error de axios en un Error legible que dice la fase, el método,
+  // la URL, el status HTTP y lo que respondió Ualá. Útil para diagnosticar en
+  // los logs sin exponer las credenciales (solo viaja la respuesta de Ualá).
+  private wrapError(phase: string, err: unknown): Error {
+    if (err instanceof AxiosError) {
+      const status = err.response?.status ?? "no-response";
+      const method = err.config?.method?.toUpperCase() ?? "?";
+      const url = err.config?.url ?? "?";
+      const data = err.response?.data;
+      const body =
+        typeof data === "string" ? data : data ? JSON.stringify(data) : err.message;
+      return new Error(`UALA ${phase} ${method} ${url} → ${status}: ${body}`);
+    }
+    return new Error(`UALA ${phase}: ${(err as Error)?.message ?? String(err)}`);
+  }
+
   // Devuelve un Bearer token válido, refrescándolo si está por vencer.
   private async ensureToken(): Promise<string> {
     // Margen de 30s para no usar un token al borde del vencimiento.
@@ -103,19 +119,23 @@ export class UalaBisPaymentService implements PaymentService {
       return this.authToken;
     }
 
-    const { data } = await axios.post<UalaTokenResponse>(
-      `${this.authBase}/v2/api/auth/token`,
-      {
-        user_name: this.userName,
-        client_id: this.clientId,
-        client_secret_id: this.clientSecret,
-        grant_type: "client_credentials",
-      }
-    );
+    try {
+      const { data } = await axios.post<UalaTokenResponse>(
+        `${this.authBase}/v2/api/auth/token`,
+        {
+          user_name: this.userName,
+          client_id: this.clientId,
+          client_secret_id: this.clientSecret,
+          grant_type: "client_credentials",
+        }
+      );
 
-    this.authToken = data.access_token;
-    this.authTokenExpiresAt = Date.now() + data.expires_in * 1000;
-    return this.authToken;
+      this.authToken = data.access_token;
+      this.authTokenExpiresAt = Date.now() + data.expires_in * 1000;
+      return this.authToken;
+    } catch (err) {
+      throw this.wrapError("auth", err);
+    }
   }
 
   private async authHeaders() {
@@ -137,15 +157,23 @@ export class UalaBisPaymentService implements PaymentService {
       notification_url: this.webhookUrl(),
     };
 
-    const { data } = await axios.post<UalaCheckoutResponse>(
-      `${this.apiBase}/v2/api/checkout`,
-      body,
-      { headers: await this.authHeaders() }
-    );
+    let data: UalaCheckoutResponse;
+    try {
+      const res = await axios.post<UalaCheckoutResponse>(
+        `${this.apiBase}/v2/api/checkout`,
+        body,
+        { headers: await this.authHeaders() }
+      );
+      data = res.data;
+    } catch (err) {
+      throw this.wrapError("checkout", err);
+    }
 
     const url = data.links?.checkout_link ?? data.checkout_link;
     if (!url) {
-      throw new Error("Ualá checkout response missing checkout_link");
+      throw new Error(
+        `UALA checkout response missing checkout_link: ${JSON.stringify(data)}`
+      );
     }
 
     return { url, externalId: data.uuid };
