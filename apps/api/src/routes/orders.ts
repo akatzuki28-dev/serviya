@@ -162,7 +162,9 @@ ordersRouter.patch(
   "/:id/status",
   requireAuth,
   async (req: AuthRequest, res) => {
-    const { status } = z
+    // safeParse (no parse): un status inválido devuelve 400, en vez de tirar
+    // dentro de un handler async (Express 4 no captura el throw → cuelga el req).
+    const parsed = z
       .object({
         status: z.enum([
           "CONFIRMADA",
@@ -172,7 +174,12 @@ ordersRouter.patch(
           "CANCELADA",
         ]),
       })
-      .parse(req.body);
+      .safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    const { status } = parsed.data;
 
     const db = getDb();
     const [updated] = await db
