@@ -34,6 +34,7 @@ describe("UalaBisPaymentService.createPaymentLink", () => {
     // 1er POST: token
     const [tokenUrl, tokenBody] = (axios as any).post.mock.calls[0];
     expect(tokenUrl).toContain("/v2/api/auth/token");
+    expect(tokenBody.username).toBe("test-uala-user");
     expect(tokenBody.client_id).toBe("test-uala-client-id");
     expect(tokenBody.grant_type).toBe("client_credentials");
 

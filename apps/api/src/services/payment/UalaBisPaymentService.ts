@@ -123,7 +123,8 @@ export class UalaBisPaymentService implements PaymentService {
       const { data } = await axios.post<UalaTokenResponse>(
         `${this.authBase}/v2/api/auth/token`,
         {
-          user_name: this.userName,
+          // La API v2 espera "username" (el SDK v1 usaba "user_name").
+          username: this.userName,
           client_id: this.clientId,
           client_secret_id: this.clientSecret,
           grant_type: "client_credentials",
