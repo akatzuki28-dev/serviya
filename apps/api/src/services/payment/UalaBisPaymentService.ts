@@ -79,10 +79,12 @@ export class UalaBisPaymentService implements PaymentService {
   private authTokenExpiresAt = 0;
 
   constructor() {
-    this.userName = process.env["UALA_USERNAME"] ?? "";
-    this.clientId = process.env["UALA_CLIENT_ID"] ?? "";
-    this.clientSecret = process.env["UALA_CLIENT_SECRET"] ?? "";
-    this.webhookSecret = process.env["UALA_WEBHOOK_SECRET"] ?? "";
+    // .trim() defensivo: evita 401 "Invalid credentials" por un espacio/salto de
+    // línea que se cuela al pegar el valor en el panel de variables de Railway.
+    this.userName = (process.env["UALA_USERNAME"] ?? "").trim();
+    this.clientId = (process.env["UALA_CLIENT_ID"] ?? "").trim();
+    this.clientSecret = (process.env["UALA_CLIENT_SECRET"] ?? "").trim();
+    this.webhookSecret = (process.env["UALA_WEBHOOK_SECRET"] ?? "").trim();
 
     const env = process.env["UALA_ENV"] === "staging" ? "staging" : "production";
     this.authBase = process.env["UALA_AUTH_BASE_URL"] ?? HOSTS[env].auth;
