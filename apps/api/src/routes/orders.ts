@@ -137,12 +137,7 @@ ordersRouter.post("/", bookingRateLimiter, async (req: AuthRequest, res) => {
     });
   } catch (err) {
     console.error(err);
-    // TEMP (debug Ualá piloto): exponer el detalle del error para diagnosticar
-    // el checkout contra producción. REVERTIR en el commit del fix.
-    res.status(500).json({
-      error: "Error al crear la orden",
-      detail: err instanceof Error ? err.message : String(err),
-    });
+    res.status(500).json({ error: "Error al crear la orden" });
   }
 });
 
