@@ -148,8 +148,9 @@ export class UalaBisPaymentService implements PaymentService {
 
   async createPaymentLink(order: Order): Promise<PaymentLink> {
     const body = {
-      origin: "serviya",
-      amount: Number(order.grossAmount),
+      // amount es STRING con formato decimal "xxxx.xx" (la v2 valida punto único;
+      // mín 25.00). NO existe campo "origin" en la v2 → no se envía.
+      amount: Number(order.grossAmount).toFixed(2),
       description: `Servicio: ${order.serviceType}`,
       // external_reference mapea el webhook de vuelta a nuestra orden.
       external_reference: order.id,

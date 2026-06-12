@@ -41,7 +41,7 @@ describe("UalaBisPaymentService.createPaymentLink", () => {
     // 2do POST: checkout
     const [coUrl, coBody, coOpts] = (axios as any).post.mock.calls[1];
     expect(coUrl).toContain("/v2/api/checkout");
-    expect(coBody.amount).toBe(10000);
+    expect(coBody.amount).toBe("10000.00");
     expect(coBody.external_reference).toBe("order-uuid-1");
     expect(coBody.callback_success).toContain("/orden/order-uuid-1/confirmada");
     expect(coBody.notification_url).toContain("/api/webhooks/uala?secret=test-uala-webhook-secret");
